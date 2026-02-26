@@ -10,16 +10,16 @@ from src.base.base import *
 def get_simdata(v):
 
     runs = 10                   # number of repetitions
-    simTime = 500               # simulation time in timeslots
+    simTime = 912               # simulation time in timeslots
     numOCW = 1                  # number of OCW channels
     numOBW = 280                # number of OBW channels
     numGrids = 8                # number of grids
     timeGranularity = 6         # number of timeslots per LRFHSS fragment 
     freqGranularity = 25        # number of frequency slots per OBW channel
-    numDecoders = 800           # number of decoders available at gateway
+    numDecoders = 100           # number of decoders available at gateway
     CR = 1                      # coding rate, CR=1 for 1/3 and CR=2 for 2/3
-    use_earlydecode = True      # early decode mechanisms flag
-    use_earlydrop = True        # early drop mechanisms flag
+    use_earlydecode = False      # early decode mechanisms flag
+    use_earlydrop = False        # early drop mechanisms flag
     use_headerdrop = False      # drop frame after unsucceful header reception flag
     familyname = "driver"       # FHS family selection, 2 options: "driver" / "lifan"
 
