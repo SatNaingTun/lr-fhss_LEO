@@ -13,7 +13,7 @@ def get_simdata(v):
     simTime = 228               # simulation time in timeslots
     numOCW = 1                  # number of OCW channels
     numOBW = 280                # number of OBW channels
-    numGrids = 8                # number of grids
+    numGrids = 8              # number of grids
     timeGranularity = 6         # number of timeslots per LRFHSS fragment 
     freqGranularity = 25        # number of frequency slots per OBW channel
     numDecoders = 100          # number of decoders available at gateway
@@ -83,7 +83,7 @@ def get_simdata2(v, numDecoders, use_earlydecode, use_earlydrop):
     simTime = 228               # simulation time in timeslots
     numOCW = 1                  # number of OCW channels
     numOBW = 280                # number of OBW channels
-    numGrids = 8                # number of grids
+    numGrids = 8               # number of grids
     timeGranularity = 6         # number of timeslots per LRFHSS fragment 
     freqGranularity = 25        # number of frequency slots per OBW channel
     # numDecoders = 100          # number of decoders available at gateway
@@ -120,6 +120,13 @@ def get_simdata2(v, numDecoders, use_earlydecode, use_earlydrop):
         collided_TXset, diffM = network.get_predecoded_data()
         
         network.run(power, dynamic)
+        print("Nodes:", numNodes)
+        print("Tracked TXs:", network.get_tracked_txs())
+        print("Decoded hdr+pld:", network.get_decoded_hrd_pld())
+        print("Collided hdr+pld:", network.get_collided_hdr_pld())
+        print("Decoded bytes:", network.get_decoded_bytes())
+        print("Header drops:", network.get_header_drop_packets())
+        print("------")
         avg_tracked_txs += network.get_tracked_txs()
         avg_header_drop_packets += network.get_header_drop_packets()
         avg_decoded_bytes += network.get_decoded_bytes()
@@ -127,6 +134,9 @@ def get_simdata2(v, numDecoders, use_earlydecode, use_earlydrop):
         avg_decoded_hdr += network.get_decoded_hdr()
         avg_decodable_pld += network.get_decodable_pld()
         avg_collided_hdr_pld += network.get_collided_hdr_pld()
+       
+
+        # print(f"avg_tracked_txs: {avg_tracked_txs / runs}, avg_header_drop_packets: {avg_header_drop_packets / runs}, avg_decoded_bytes: {avg_decoded_bytes / runs}, avg_decoded_hrd_pld: {avg_decoded_hrd_pld / runs}, avg_decoded_hdr: {avg_decoded_hdr / runs}, avg_decodable_pld: {avg_decodable_pld / runs}, avg_collided_hdr_pld: {avg_collided_hdr_pld / runs}")
 
         tp, fp, fn, _time = 0,0,0,0
         if len(collided_TXset):
@@ -144,7 +154,7 @@ def get_simdata2(v, numDecoders, use_earlydecode, use_earlydrop):
          avg_decoded_hrd_pld / runs, avg_decoded_hdr / runs, avg_decodable_pld / runs,
          avg_collided_hdr_pld / runs, avg_tp / runs, avg_fp / runs, avg_fn / runs, avg_time / runs]
     
-    print(f"{numNodes}", x)
+    # print(f"{numNodes}", x)
     return x
 
 
@@ -152,6 +162,7 @@ def runsim():
 
     # define vector of network sizes
     netSizes = np.logspace(1.0, 3.0, num=40) 
+    # netSizes = np.logspace(0.5, 2.5, num=40)
 
     result = [get_simdata(nodes) for nodes in netSizes]
     
@@ -171,7 +182,11 @@ def runsim():
 
 def runsim2csv(numDecoders, use_earlydecode, use_earlydrop, filename):
 
+    # netSizes = np.logspace(1.0, 3.0, num=20)
     netSizes = np.logspace(1.0, 3.0, num=40)
+    # netSizes = np.logspace(0.25, 0.625, num=40)
+    # netSizes=[5,10,20]
+    # netSizes = np.logspace(2, 4, 40)
     results = []
 
     for nodes in netSizes:

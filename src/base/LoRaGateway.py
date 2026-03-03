@@ -150,6 +150,8 @@ class LoRaGateway():
     def run(self, transmissions: list[LRFHSSTransmission],
             rcvM: np.ndarray, dynamic: bool) -> None:
 
+        assigned = 0
+        dropped = 0
         freeUpTimes = np.zeros(self.numDecoders)
         for tx in transmissions:
             for i, fut in enumerate(freeUpTimes):
@@ -158,3 +160,5 @@ class LoRaGateway():
                     processor = self._processors[i]
                     freeUpTimes[i] = processor.decode(tx, rcvM, dynamic)
                     break
+        
+        

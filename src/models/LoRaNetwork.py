@@ -52,7 +52,7 @@ class LoRaNetwork():
         ###########################
 
         max_packet_duration = MAX_HDRS * self.headerSlots + MAX_FRGS * timeGranularity
-        startLimit = simTime - max_packet_duration
+        startLimit = simTime - max_packet_duration - 1
         self.nodes = [LoRaNode(i, CR, numOCW, startLimit) for i in range(numNodes)]
 
         self.TXset = self.set_transmissions()

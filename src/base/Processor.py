@@ -165,6 +165,98 @@ class Processor():
         return endTime
 
 
+    # def decode(self, tx: LRFHSSTransmission, rcvM: np.ndarray, dynamic: bool) -> int:
+    #     """
+    #     Determine status of incoming transmissions and return free up time
+    #     """
+
+    #     self.tracked_txs += 1
+    #     collided_headers = 0
+    #     decoded_fragments = 0
+    #     collided_fragments = 0
+
+    #     dopplershift = round(tx.dopplerShift[0] / self.freqPerSlot)
+    #     maxFrgCollisions = tx.numFragments - self.get_minfragments(tx.numFragments)
+
+    #     if self.collision_method == 'SINR':
+    #         estSignalPower, headersPi, fragmentsPi = self.get_power_estimations(tx, rcvM, dynamic)
+
+    #     time = tx.startSlot
+    #     for fh, obw in enumerate(tx.sequence):
+
+    #         # variable doppler shift per header / fragment
+    #         if dynamic:
+    #             dopplershift = round(tx.dopplerShift[fh] / self.freqPerSlot)
+
+    #         startFreq = self.baseFreq + obw * self.freqGranularity + dopplershift
+    #         endFreq = startFreq + self.freqGranularity
+
+    #         # header
+    #         if fh < tx.numHeaders:
+
+    #             endTime = time + self.headerSlots
+
+    #             if self.collision_method == 'strict':
+    #                 args = [rcvM[tx.ocw, startFreq : endFreq, time : endTime]]
+    #             if self.collision_method == 'SINR':
+    #                 args = [estSignalPower, headersPi[fh], True]
+
+    #             if self.isCollided(args):
+    #                 collided_headers += 1
+                
+    #             time = endTime
+
+    #         # fragment
+    #         else:
+
+    #             # collided header, abort payload reception
+    #             if self.use_headerdrop and collided_headers == tx.numHeaders:
+    #                 self.header_drop_packets += 1
+    #                 return endTime
+
+    #             endTime = time + self.timeGranularity
+
+    #             if self.collision_method == 'strict':
+    #                 args = [rcvM[tx.ocw, startFreq : endFreq, time : endTime]]
+    #             if self.collision_method == 'SINR':
+    #                 args = [estSignalPower, fragmentsPi[fh-tx.numHeaders], False]
+
+    #             if self.isCollided(args):
+    #                 collided_fragments += 1
+    #             else:
+    #                 decoded_fragments += 1
+
+    #             # early decode - decoded or decodable payload
+    #             if self.use_earlydecode and decoded_fragments >= self.get_minfragments(tx.numFragments):
+
+    #                 # case 1
+    #                 if collided_headers < tx.numHeaders:
+    #                     self.decoded_hrd_pld += 1
+    #                     self.decoded_bytes += tx.payload_size
+    #                     self.decoded.append([tx, 1])
+
+    #                 # case 2
+    #                 else:
+    #                     self.decodable_pld += 1
+
+    #                 return endTime
+
+    #             # early drop - collided payload
+    #             if self.use_earlydrop and collided_fragments > maxFrgCollisions:
+                    
+    #                 # case 3
+    #                 if collided_headers < tx.numHeaders:
+    #                     self.decoded_hdr += 1
+    #                     self.decoded.append([tx, 0])
+
+    #                 # case 4
+    #                 else:
+    #                     self.collided_hdr_pld += 1
+                    
+    #                 return endTime
+
+    #             time = endTime
+
     def decode(self, tx: LRFHSSTransmission, rcvM: np.ndarray, dynamic: bool) -> int:
         """
         Determine status of incoming transmissions and return free up time
@@ -182,6 +274,7 @@ class Processor():
             estSignalPower, headersPi, fragmentsPi = self.get_power_estimations(tx, rcvM, dynamic)
 
         time = tx.startSlot
+
         for fh, obw in enumerate(tx.sequence):
 
             # variable doppler shift per header / fragment
@@ -191,72 +284,98 @@ class Processor():
             startFreq = self.baseFreq + obw * self.freqGranularity + dopplershift
             endFreq = startFreq + self.freqGranularity
 
-            # header
+            # ================= HEADER =================
             if fh < tx.numHeaders:
 
                 endTime = time + self.headerSlots
 
                 if self.collision_method == 'strict':
-                    args = [rcvM[tx.ocw, startFreq : endFreq, time : endTime]]
-                if self.collision_method == 'SINR':
+                    args = [rcvM[tx.ocw, startFreq:endFreq, time:endTime]]
+                else:  # SINR
                     args = [estSignalPower, headersPi[fh], True]
 
                 if self.isCollided(args):
                     collided_headers += 1
-                
+
                 time = endTime
 
-            # fragment
+            # ================= FRAGMENT =================
             else:
 
-                # collided header, abort payload reception
+                # header drop
                 if self.use_headerdrop and collided_headers == tx.numHeaders:
                     self.header_drop_packets += 1
-                    return endTime
+                    return time
 
                 endTime = time + self.timeGranularity
 
                 if self.collision_method == 'strict':
-                    args = [rcvM[tx.ocw, startFreq : endFreq, time : endTime]]
-                if self.collision_method == 'SINR':
-                    args = [estSignalPower, fragmentsPi[fh-tx.numHeaders], False]
+                    args = [rcvM[tx.ocw, startFreq:endFreq, time:endTime]]
+                else:
+                    args = [estSignalPower, fragmentsPi[fh - tx.numHeaders], False]
 
                 if self.isCollided(args):
                     collided_fragments += 1
                 else:
                     decoded_fragments += 1
 
-                # early decode - decoded or decodable payload
+                # ===== EARLY DECODE =====
                 if self.use_earlydecode and decoded_fragments >= self.get_minfragments(tx.numFragments):
 
-                    # case 1
                     if collided_headers < tx.numHeaders:
                         self.decoded_hrd_pld += 1
                         self.decoded_bytes += tx.payload_size
                         self.decoded.append([tx, 1])
-
-                    # case 2
                     else:
                         self.decodable_pld += 1
 
                     return endTime
 
-                # early drop - collided payload
+                # ===== EARLY DROP =====
                 if self.use_earlydrop and collided_fragments > maxFrgCollisions:
-                    
-                    # case 3
+
                     if collided_headers < tx.numHeaders:
                         self.decoded_hdr += 1
                         self.decoded.append([tx, 0])
-
-                    # case 4
                     else:
                         self.collided_hdr_pld += 1
-                    
+
                     return endTime
 
                 time = endTime
-        
+
+        # =========================================================
+        # ================= BASELINE FINAL DECISION ================
+        # =========================================================
+
+        minFragments = self.get_minfragments(tx.numFragments)
+
+        # Payload decodable
+        if decoded_fragments >= minFragments:
+
+            # case 1: header + payload decoded
+            if collided_headers < tx.numHeaders:
+                self.decoded_hrd_pld += 1
+                self.decoded_bytes += tx.payload_size
+                self.decoded.append([tx, 1])
+
+            # case 2: payload decodable but header failed
+            else:
+                self.decodable_pld += 1
+
+        # Payload not decodable
+        else:
+
+            # case 3: header decoded but payload failed
+            if collided_headers < tx.numHeaders:
+                self.decoded_hdr += 1
+                self.decoded.append([tx, 0])
+
+            # case 4: fully collided
+            else:
+                self.collided_hdr_pld += 1
+
+        return time     
 
     def get_power_estimations(self, tx: LRFHSSTransmission, rcvM: np.ndarray, dynamic: bool) -> bool:
 
